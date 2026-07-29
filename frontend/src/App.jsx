@@ -2,6 +2,8 @@ import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-route
 import { useEffect, useMemo, useState } from 'react';
 import AppShell from './components/AppShell';
 import Login from './components/Login';
+import UploadPublicWorkModal from './components/UploadPublicWorkModal';
+import UploadSchemeModal from './components/UploadSchemeModal';
 import PageRenderer from './pages/PageRenderer';
 import { அனைத்து_பக்கங்கள் } from './data/pageCatalog';
 import {
@@ -37,11 +39,47 @@ function பயனரிலிருந்து_சுயவிவரம்(use
   };
 }
 
-function பலகைகளை_உருவாக்கு(complaintList, mobileNumber) {
+function normalizeDistrict(raw) {
+  if (!raw) return '';
+  const cleaned = raw.trim().toLowerCase();
+  if (cleaned.includes('chennai') || cleaned.includes('சென்னை')) return 'chennai';
+  if (cleaned.includes('kallakurichi') || cleaned.includes('கள்ளக்குறிச்சி')) return 'kallakurichi';
+  if (cleaned.includes('madurai') || cleaned.includes('மதுரை')) return 'madurai';
+  if (cleaned.includes('coimbatore') || cleaned.includes('கோவை') || cleaned.includes('கோயம்புத்தூர்')) return 'coimbatore';
+  if (cleaned.includes('trichy') || cleaned.includes('tiruchirappalli') || cleaned.includes('திருச்சி')) return 'tiruchirappalli';
+  if (cleaned.includes('salem') || cleaned.includes('சேலம்')) return 'salem';
+  return cleaned;
+}
+
+export function filterComplaintsForUser(complaintList, user) {
+  if (!user || user.role === 'ADMIN') {
+    return complaintList;
+  }
+  if (user.role === 'OFFICER') {
+    return complaintList.filter((item) => {
+      const userDept = (user.departmentCode || '').trim().toUpperCase();
+      const itemDept = (item.departmentCode || '').trim().toUpperCase();
+      const deptMatch = !userDept || !itemDept || userDept === itemDept;
+
+      const userDist = normalizeDistrict(user.district || user.village || '');
+      const itemDist = normalizeDistrict(item.district || item.village || '');
+      const distMatch = !userDist || !itemDist || userDist === itemDist;
+
+      return deptMatch && distMatch;
+    });
+  }
+  if (user.role === 'CITIZEN') {
+    return complaintList.filter((item) => item.mobileNumber === user.mobileNumber || item.ownerUsername === user.username);
+  }
+  return complaintList;
+}
+
+function பலகைகளை_உருவாக்கு(complaintList, mobileNumber, user) {
+  const userFiltered = filterComplaintsForUser(complaintList, user);
   return {
     home: டாஷ்போர்டு_உருவாக்கு('கிராம குரல்', 'தமிழ் குறைதீர் தளம்', complaintList),
     citizen: டாஷ்போர்டு_உருவாக்கு('குடிமக்கள் பலகை', 'என் பதிவுகள்', complaintList.filter((item) => item.mobileNumber === mobileNumber)),
-    admin: டாஷ்போர்டு_உருவாக்கு('நிர்வாக முகப்பு', 'மொத்த குறைகள்', complaintList),
+    admin: டாஷ்போர்டு_உருவாக்கு('நிர்வாக முகப்பு', 'மொத்த குறைகள்', userFiltered),
   };
 }
 
@@ -80,6 +118,8 @@ function AppLayout({ currentPage }) {
   const [departments, setDepartments] = useState(துறைகள்);
   const [draftAnalysis, setDraftAnalysis] = useState(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [uploadWorkModalOpen, setUploadWorkModalOpen] = useState(false);
+  const [uploadSchemeModalOpen, setUploadSchemeModalOpen] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('grama-profile', JSON.stringify(profile));
@@ -174,7 +214,7 @@ function AppLayout({ currentPage }) {
   }, [profile.கைபேசி]);
 
   const activeRoleView = currentPage.audience === அனைவருக்கும் ? roleView : currentPage.audience;
-  const dashboards = useMemo(() => பலகைகளை_உருவாக்கு(complaints, profile.கைபேசி), [complaints, profile.கைபேசி]);
+  const dashboards = useMemo(() => பலகைகளை_உருவாக்கு(complaints, profile.கைபேசி, user), [complaints, profile.கைபேசி, user]);
 
   const actions = useMemo(() => ({
     updateProfile: (patch) => setProfile((current) => ({ ...current, ...patch })),
@@ -241,6 +281,8 @@ function AppLayout({ currentPage }) {
       });
       navigate('/அனுப்புதல்-வெற்றி');
     },
+    setUploadWorkModalOpen,
+    setUploadSchemeModalOpen,
   }), [draft, navigate, profile]);
 
   const state = {
@@ -275,6 +317,22 @@ function AppLayout({ currentPage }) {
       isAdmin={isAdmin}
     >
       <PageRenderer page={currentPage} state={state} actions={actions} pages={அனைத்து_பக்கங்கள்} />
+
+      {uploadWorkModalOpen && (
+        <UploadPublicWorkModal
+          isOpen={uploadWorkModalOpen}
+          onClose={() => setUploadWorkModalOpen(false)}
+          onSuccess={() => setUploadWorkModalOpen(false)}
+        />
+      )}
+
+      {uploadSchemeModalOpen && (
+        <UploadSchemeModal
+          isOpen={uploadSchemeModalOpen}
+          onClose={() => setUploadSchemeModalOpen(false)}
+          onSuccess={() => setUploadSchemeModalOpen(false)}
+        />
+      )}
     </AppShell>
   );
 }

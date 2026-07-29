@@ -1,18 +1,4 @@
 services:
-  mysql:
-    image: mysql:8.4
-    container_name: grama-mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: gramavoice
-    volumes:
-      - grama_mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -proot"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-
   backend:
     build:
       context: ./backend
@@ -20,17 +6,16 @@ services:
     container_name: grama-backend
     restart: unless-stopped
     environment:
-      GRAMAVOICE_DB_URL: jdbc:mysql://mysql:3306/gramavoice?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Kolkata
-      GRAMAVOICE_DB_USERNAME: root
-      GRAMAVOICE_DB_PASSWORD: root
+      GRAMAVOICE_DB_URL: ${GRAMAVOICE_DB_URL:-jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require}
+      GRAMAVOICE_DB_USERNAME: ${GRAMAVOICE_DB_USERNAME:-postgres.nffwpckgcrwaljmpxcef}
+      GRAMAVOICE_DB_PASSWORD: ${GRAMAVOICE_DB_PASSWORD:-Prajubhai143}
+      GRAMAVOICE_DB_DRIVER: org.postgresql.Driver
+      GRAMAVOICE_JPA_DIALECT: org.hibernate.dialect.PostgreSQLDialect
       SERVER_PORT: 8085
       SARVAM_API_KEY: ${SARVAM_API_KEY:-}
       SARVAM_MODEL: ${SARVAM_MODEL:-sarvam-30b}
       SARVAM_ENABLED: ${SARVAM_ENABLED:-true}
       APP_AUTH_SECRET: ${APP_AUTH_SECRET:-replace-this-secret}
-    depends_on:
-      mysql:
-        condition: service_healthy
     ports:
       - "8085:8085"
 
@@ -44,6 +29,3 @@ services:
       - backend
     ports:
       - "5180:5180"
-
-volumes:
-  grama_mysql_data:

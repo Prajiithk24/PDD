@@ -50,6 +50,9 @@ public class Complaint {
 
     private Double confidenceScore;
 
+    private Double latitude;
+    private Double longitude;
+
     @Column(columnDefinition = "TEXT")
     private String resolutionNoteTa;
 
@@ -229,6 +232,22 @@ public class Complaint {
 
     public void setConfidenceScore(Double confidenceScore) {
         this.confidenceScore = confidenceScore;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
     }
 
     public String getResolutionNoteTa() {

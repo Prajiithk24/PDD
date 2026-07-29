@@ -43,7 +43,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/dashboard/admin").hasRole("ADMIN")
                 .requestMatchers("/api/complaints/**").authenticated()
                 .requestMatchers("/api/analysis/**").authenticated()
+                .requestMatchers("/api/welfare-schemes/**").authenticated()
+                .requestMatchers("/api/public-works/**").authenticated()
                 .anyRequest().authenticated()
+
             )
             .addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

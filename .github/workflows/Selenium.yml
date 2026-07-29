@@ -1,0 +1,30 @@
+name: Selenium Test Report Workflow
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  selenium-report-job:
+    name: Process Selenium Test Report
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Verify Selenium Test Report Excel File
+        run: |
+          if [ -f "tests/reports/Selenium_Test_Report.xlsx" ]; then
+            echo "Successfully found tests/reports/Selenium_Test_Report.xlsx"
+          else
+            echo "Error: tests/reports/Selenium_Test_Report.xlsx does not exist!" && exit 1
+          fi
+
+      - name: Upload Selenium Test Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Selenium-Test-Report
+          path: tests/reports/Selenium_Test_Report.xlsx

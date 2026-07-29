@@ -34,9 +34,9 @@ Start-Process powershell -ArgumentList @(
     "-NoExit", "-Command",
     "cd '$root\backend'; " +
     "`$env:SERVER_PORT='8085'; " +
-    "`$env:GRAMAVOICE_DB_URL='jdbc:h2:file:./data/gramavoice;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL'; " +
-    "`$env:GRAMAVOICE_DB_USERNAME='sa'; " +
-    "`$env:GRAMAVOICE_DB_PASSWORD=''; " +
+    "`$env:GRAMAVOICE_DB_URL='jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require'; " +
+    "`$env:GRAMAVOICE_DB_USERNAME='postgres.nffwpckgcrwaljmpxcef'; " +
+    "`$env:GRAMAVOICE_DB_PASSWORD='Prajubhai143'; " +
     "`$env:APP_AUTH_SECRET='replace-with-a-long-random-secret'; " +
     "`$env:SARVAM_API_KEY='sk_rj6ttq4q_B6Bo503VcbvqGNC4qWaIyhUd'; " +
     "`$env:SARVAM_MODEL='sarvam-30b'; " +

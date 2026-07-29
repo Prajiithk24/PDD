@@ -1,0 +1,30 @@
+name: Appium Test Report Workflow
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  appium-report-job:
+    name: Process Appium Test Report
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Verify Appium Test Report Excel File
+        run: |
+          if [ -f "tests/reports/Appium_Test_Report.xlsx" ]; then
+            echo "Successfully found tests/reports/Appium_Test_Report.xlsx"
+          else
+            echo "Error: tests/reports/Appium_Test_Report.xlsx does not exist!" && exit 1
+          fi
+
+      - name: Upload Appium Test Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Appium-Test-Report
+          path: tests/reports/Appium_Test_Report.xlsx

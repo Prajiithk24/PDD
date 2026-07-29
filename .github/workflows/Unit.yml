@@ -1,0 +1,30 @@
+name: Unit Test Report Workflow
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  unit-report-job:
+    name: Process Unit Test Report
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Verify Unit Test Report Excel File
+        run: |
+          if [ -f "tests/reports/Unit_Test_Report.xlsx" ]; then
+            echo "Successfully found tests/reports/Unit_Test_Report.xlsx"
+          else
+            echo "Error: tests/reports/Unit_Test_Report.xlsx does not exist!" && exit 1
+          fi
+
+      - name: Upload Unit Test Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Unit-Test-Report
+          path: tests/reports/Unit_Test_Report.xlsx

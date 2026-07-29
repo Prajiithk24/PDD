@@ -17,11 +17,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthenticationManager authenticationManager;
     private final UserService userService;
@@ -35,25 +39,40 @@ public class AuthController {
 
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.username(), request.password())
-        );
-        User user = userService.getByUsername(authentication.getName());
-        return toAuthResponse(user);
+        log.info("▶️ [AUTH] Incoming login attempt for username: '{}'", request.username());
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.username(), request.password())
+            );
+            User user = userService.getByUsername(authentication.getName());
+            log.info("✅ [AUTH] Login successful for user: '{}' (role={})", user.getUsername(), user.getRole());
+            return toAuthResponse(user);
+        } catch (Exception e) {
+            log.warn("❌ [AUTH] Login failed for username: '{}' - Reason: {}", request.username(), e.getMessage());
+            throw e;
+        }
     }
 
     @PostMapping("/register")
     public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
-        User user = new User(
-                request.username(),
-                request.password(),
-                request.fullName(),
-                request.mobileNumber(),
-                request.village(),
-                request.district(),
-                UserRole.CITIZEN
-        );
-        return toAuthResponse(userService.save(user));
+        log.info("▶️ [AUTH] Incoming registration attempt for username: '{}', mobile: '{}'", request.username(), request.mobileNumber());
+        try {
+            User user = new User(
+                    request.username(),
+                    request.password(),
+                    request.fullName(),
+                    request.mobileNumber(),
+                    request.village(),
+                    request.district(),
+                    UserRole.CITIZEN
+            );
+            AuthResponse response = toAuthResponse(userService.save(user));
+            log.info("✅ [AUTH] Registration successful for user: '{}'", user.getUsername());
+            return response;
+        } catch (Exception e) {
+            log.warn("❌ [AUTH] Registration failed for username: '{}' - Reason: {}", request.username(), e.getMessage());
+            throw e;
+        }
     }
 
     @GetMapping("/me")

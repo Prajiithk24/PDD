@@ -1,0 +1,30 @@
+name: Load Test Report Workflow
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  load-report-job:
+    name: Process Load Test Report
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Verify Load Test Report Excel File
+        run: |
+          if [ -f "tests/reports/Load_Test_Report.xlsx" ]; then
+            echo "Successfully found tests/reports/Load_Test_Report.xlsx"
+          else
+            echo "Error: tests/reports/Load_Test_Report.xlsx does not exist!" && exit 1
+          fi
+
+      - name: Upload Load Test Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Load-Test-Report
+          path: tests/reports/Load_Test_Report.xlsx

@@ -1,5 +1,5 @@
 param(
-  [string]$ApiUrl = 'http://localhost:8080',
+  [string]$ApiUrl = '',
   [int]$Port = 5173
 )
 
@@ -8,6 +8,31 @@ $frontendDir = Join-Path $root 'frontend'
 $pidFile = Join-Path $root '.frontend.pid'
 $logFile = Join-Path $frontendDir 'frontend.log'
 $errorFile = Join-Path $frontendDir 'frontend-error.log'
+$localEnvFile = Join-Path $root '.env.local'
+
+if (Test-Path $localEnvFile) {
+  Get-Content $localEnvFile | ForEach-Object {
+    $line = $_.Trim()
+    if ($line -and -not $line.StartsWith('#') -and $line.Contains('=')) {
+      $parts = $line.Split('=', 2)
+      $name = $parts[0].Trim()
+      $value = $parts[1].Trim()
+      if ($name -and -not [Environment]::GetEnvironmentVariable($name, 'Process')) {
+        [Environment]::SetEnvironmentVariable($name, $value, 'Process')
+      }
+    }
+  }
+}
+
+if ([string]::IsNullOrWhiteSpace($ApiUrl)) {
+  if ($env:VITE_PROXY_TARGET) {
+    $ApiUrl = $env:VITE_PROXY_TARGET
+  } elseif ($env:SERVER_PORT) {
+    $ApiUrl = "http://localhost:$($env:SERVER_PORT)"
+  } else {
+    $ApiUrl = 'http://localhost:8085'
+  }
+}
 
 if (Test-Path $pidFile) {
   $existingPid = Get-Content -Raw $pidFile

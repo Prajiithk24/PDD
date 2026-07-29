@@ -16,7 +16,7 @@ foreach ($name in '.frontend.pid', '.backend.pid') {
   Remove-Item $pidFile -Force
 }
 
-foreach ($port in 5173, 8080) {
+foreach ($port in 5173, 5180, 8080, 8085) {
   $listener = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
   if ($listener) {
     Stop-Process -Id $listener.OwningProcess -Force

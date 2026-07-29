@@ -28,6 +28,9 @@ public record ComplaintResponse(
         String evidenceUrl,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
-        List<TimelineItemResponse> timeline
+        List<TimelineItemResponse> timeline,
+        Integer feedbackRating,
+        String feedbackCommentTa,
+        int imageCount
 ) {
 }

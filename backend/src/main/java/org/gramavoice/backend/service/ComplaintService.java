@@ -14,8 +14,12 @@ import org.gramavoice.backend.model.User;
 import org.gramavoice.backend.model.UserRole;
 import org.gramavoice.backend.repository.AppNotificationRepository;
 import org.gramavoice.backend.repository.CategoryRuleRepository;
+import org.gramavoice.backend.repository.ComplaintFeedbackRepository;
 import org.gramavoice.backend.repository.ComplaintHistoryRepository;
+import org.gramavoice.backend.repository.ComplaintImageRepository;
 import org.gramavoice.backend.repository.ComplaintRepository;
+import java.util.Locale;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +36,8 @@ public class ComplaintService {
     private final ComplaintHistoryRepository complaintHistoryRepository;
     private final CategoryRuleRepository categoryRuleRepository;
     private final AppNotificationRepository notificationRepository;
+    private final ComplaintFeedbackRepository feedbackRepository;
+    private final ComplaintImageRepository imageRepository;
     private final TextAnalysisService textAnalysisService;
     private final ReferenceNumberService referenceNumberService;
 
@@ -40,6 +46,8 @@ public class ComplaintService {
             ComplaintHistoryRepository complaintHistoryRepository,
             CategoryRuleRepository categoryRuleRepository,
             AppNotificationRepository notificationRepository,
+            ComplaintFeedbackRepository feedbackRepository,
+            ComplaintImageRepository imageRepository,
             TextAnalysisService textAnalysisService,
             ReferenceNumberService referenceNumberService
     ) {
@@ -47,6 +55,8 @@ public class ComplaintService {
         this.complaintHistoryRepository = complaintHistoryRepository;
         this.categoryRuleRepository = categoryRuleRepository;
         this.notificationRepository = notificationRepository;
+        this.feedbackRepository = feedbackRepository;
+        this.imageRepository = imageRepository;
         this.textAnalysisService = textAnalysisService;
         this.referenceNumberService = referenceNumberService;
     }
@@ -73,13 +83,24 @@ public class ComplaintService {
         }
         if (user.getRole() == UserRole.OFFICER) {
             String departmentCode = user.getDepartmentCode();
+            String officerDistrict = user.getDistrict();
+
             List<Complaint> complaints = complaintRepository.findAll()
                     .stream()
-                    .filter(complaint -> departmentCode == null
-                            || departmentCode.isBlank()
-                            || departmentCode.equals(complaint.getDepartmentCode()))
+                    .filter(complaint -> {
+                        boolean deptMatch = departmentCode == null
+                                || departmentCode.isBlank()
+                                || departmentCode.equalsIgnoreCase(complaint.getDepartmentCode());
+                        
+                        boolean districtMatch = officerDistrict == null
+                                || officerDistrict.isBlank()
+                                || isDistrictMatch(officerDistrict, complaint.getDistrict());
+                        
+                        return deptMatch && districtMatch;
+                    })
                     .sorted(Comparator.comparing(Complaint::getCreatedAt).reversed())
                     .toList();
+
             if (status != null && !status.isBlank()) {
                 ComplaintStatus wantedStatus = ComplaintStatus.valueOf(status);
                 complaints = complaints.stream().filter(complaint -> complaint.getStatus() == wantedStatus).toList();
@@ -113,7 +134,7 @@ public class ComplaintService {
         complaint.setDescriptionTa(request.description());
         complaint.setTranscriptTa(analysis.cleanedText());
         complaint.setVillage(blankFallback(request.village(), "கிராமம் குறிப்பிடப்படவில்லை"));
-        complaint.setDistrict(blankFallback(request.district(), "மாவட்டம் குறிப்பிடப்படவில்லை"));
+        complaint.setDistrict(blankFallback(normalizeDistrictName(request.district()), "மாவட்டம் குறிப்பிடப்படவில்லை"));
         complaint.setLocationArea(blankFallback(request.locationArea(), "இடம் குறிப்பிடப்படவில்லை"));
         complaint.setEvidenceUrl(request.evidenceUrl());
         complaint.setSourceMode(blankFallback(request.sourceMode(), "VOICE"));
@@ -252,6 +273,8 @@ public class ComplaintService {
     }
 
     private ComplaintResponse toResponse(Complaint complaint) {
+        var feedback = feedbackRepository.findByComplaintId(complaint.getId()).orElse(null);
+        int imageCount = imageRepository.countByComplaintId(complaint.getId());
         return new ComplaintResponse(
                 complaint.getId(),
                 complaint.getReferenceNumber(),
@@ -277,7 +300,10 @@ public class ComplaintService {
                 complaint.getEvidenceUrl(),
                 complaint.getCreatedAt(),
                 complaint.getUpdatedAt(),
-                getTimeline(complaint.getId())
+                getTimeline(complaint.getId()),
+                feedback != null ? feedback.getRating() : null,
+                feedback != null ? feedback.getCommentTa() : null,
+                imageCount
         );
     }
 
@@ -327,6 +353,63 @@ public class ComplaintService {
             case ESCALATED -> "மேல்நிலைக்கு உயர்த்தப்பட்டது";
             case CLOSED -> "மூடப்பட்டது";
         };
+    }
+
+    private static final Map<String, String> TAMIL_TO_ENGLISH_DISTRICTS = Map.ofEntries(
+        Map.entry("சென்னை", "Chennai"), Map.entry("சென்னையில்", "Chennai"), Map.entry("chennai", "Chennai"),
+        Map.entry("மதுரை", "Madurai"), Map.entry("மதுரையில்", "Madurai"), Map.entry("madurai", "Madurai"),
+        Map.entry("கோயம்புத்தூர்", "Coimbatore"), Map.entry("கோவை", "Coimbatore"), Map.entry("coimbatore", "Coimbatore"),
+        Map.entry("திருச்சிராப்பள்ளி", "Tiruchirappalli"), Map.entry("திருச்சி", "Tiruchirappalli"), Map.entry("tiruchirappalli", "Tiruchirappalli"), Map.entry("trichy", "Tiruchirappalli"),
+        Map.entry("சேலம்", "Salem"), Map.entry("சேலத்தில்", "Salem"), Map.entry("salem", "Salem"),
+        Map.entry("திருநெல்வேலி", "Tirunelveli"), Map.entry("நெல்லை", "Tirunelveli"), Map.entry("tirunelveli", "Tirunelveli"), Map.entry("nellai", "Tirunelveli"),
+        Map.entry("ஈரோடு", "Erode"), Map.entry("erode", "Erode"),
+        Map.entry("வேலூர்", "Vellore"), Map.entry("vellore", "Vellore"),
+        Map.entry("தஞ்சாவூர்", "Thanjavur"), Map.entry("தஞ்சை", "Thanjavur"), Map.entry("thanjavur", "Thanjavur"),
+        Map.entry("திண்டுக்கல்", "Dindigul"), Map.entry("dindigul", "Dindigul"),
+        Map.entry("தேனி", "Theni"), Map.entry("theni", "Theni"),
+        Map.entry("கன்னியாகுமரி", "Kanyakumari"), Map.entry("குமரி", "Kanyakumari"), Map.entry("kanyakumari", "Kanyakumari"),
+        Map.entry("தூத்துக்குடி", "Thoothukudi"), Map.entry("thoothukudi", "Thoothukudi"), Map.entry("tuticorin", "Thoothukudi"),
+        Map.entry("விருதுநகர்", "Virudhunagar"), Map.entry("virudhunagar", "Virudhunagar"),
+        Map.entry("சிவகங்கை", "Sivaganga"), Map.entry("sivaganga", "Sivaganga"),
+        Map.entry("இராமநாதபுரம்", "Ramanathapuram"), Map.entry("ராமநாதபுரம்", "Ramanathapuram"), Map.entry("ramanathapuram", "Ramanathapuram"),
+        Map.entry("புதுக்கோட்டை", "Pudukkottai"), Map.entry("pudukkottai", "Pudukkottai"),
+        Map.entry("கரூர்", "Karur"), Map.entry("karur", "Karur"),
+        Map.entry("நாமக்கல்", "Namakkal"), Map.entry("namakkal", "Namakkal"),
+        Map.entry("தர்மபுரி", "Dharmapuri"), Map.entry("தருமபுரி", "Dharmapuri"), Map.entry("dharmapuri", "Dharmapuri"),
+        Map.entry("கிருஷ்ணகிரி", "Krishnagiri"), Map.entry("krishnagiri", "Krishnagiri"),
+        Map.entry("திருப்பூர்", "Tiruppur"), Map.entry("tiruppur", "Tiruppur"),
+        Map.entry("நீலகிரி", "Nilgiris"), Map.entry("ஊட்டி", "Nilgiris"), Map.entry("nilgiris", "Nilgiris"), Map.entry("ooty", "Nilgiris"),
+        Map.entry("கடலூர்", "Cuddalore"), Map.entry("cuddalore", "Cuddalore"),
+        Map.entry("நாகப்பட்டினம்", "Nagapattinam"), Map.entry("நாகை", "Nagapattinam"), Map.entry("nagapattinam", "Nagapattinam"),
+        Map.entry("திருவாரூர்", "Tiruvarur"), Map.entry("tiruvarur", "Tiruvarur"),
+        Map.entry("பெரம்பலூர்", "Perambalur"), Map.entry("perambalur", "Perambalur"),
+        Map.entry("அரியலூர்", "Ariyalur"), Map.entry("ariyalur", "Ariyalur"),
+        Map.entry("திருவள்ளூர்", "Tiruvallur"), Map.entry("tiruvallur", "Tiruvallur"),
+        Map.entry("திருவண்ணாமலை", "Tiruvannamalai"), Map.entry("tiruvannamalai", "Tiruvannamalai"),
+        Map.entry("ராணிப்பேட்டை", "Ranipet"), Map.entry("ranipet", "Ranipet"),
+        Map.entry("கள்ளக்குறிச்சி", "Kallakurichi"), Map.entry("kallakurichi", "Kallakurichi"),
+        Map.entry("தென்காசி", "Tenkasi"), Map.entry("tenkasi", "Tenkasi"),
+        Map.entry("செங்கல்பட்டு", "Chengalpattu"), Map.entry("chengalpattu", "Chengalpattu"),
+        Map.entry("மயிலாடுதுறை", "Mayiladuthurai"), Map.entry("mayiladuthurai", "Mayiladuthurai")
+    );
+
+    public static String normalizeDistrictName(String raw) {
+        if (raw == null || raw.isBlank()) return "";
+        String cleaned = raw.trim().toLowerCase(Locale.ROOT);
+        for (Map.Entry<String, String> entry : TAMIL_TO_ENGLISH_DISTRICTS.entrySet()) {
+            if (cleaned.contains(entry.getKey().toLowerCase(Locale.ROOT))) {
+                return entry.getValue();
+            }
+        }
+        return raw.trim();
+    }
+
+    private boolean isDistrictMatch(String officerDistrict, String complaintDistrict) {
+        if (officerDistrict == null || officerDistrict.isBlank()) return true;
+        if (complaintDistrict == null || complaintDistrict.isBlank()) return false;
+        String o = normalizeDistrictName(officerDistrict).toLowerCase(Locale.ROOT);
+        String c = normalizeDistrictName(complaintDistrict).toLowerCase(Locale.ROOT);
+        return o.equals(c) || o.contains(c) || c.contains(o);
     }
 
     private String blankFallback(String input, String fallback) {

@@ -2,16 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { தரவை_அனுப்பு } from '../lib/api';
 
-const ADMIN_DEPARTMENTS = [
-  { code: 'ADMIN', username: 'admin', password: 'admin123', label: 'மாவட்ட நிர்வாகம் (மொத்த)' },
-  { code: 'WATER', username: 'water', password: 'water123', label: 'குடிநீர் துறை' },
-  { code: 'ELECTRICITY', username: 'electricity', password: 'electricity123', label: 'மின்சார துறை' },
-  { code: 'ROADS', username: 'roads', password: 'roads123', label: 'சாலை மற்றும் போக்குவரத்து' },
-  { code: 'MUNICIPAL', username: 'municipal', password: 'municipal123', label: 'ஊராட்சி / நகராட்சி' },
-  { code: 'RATION', username: 'ration', password: 'ration123', label: 'ரேஷன் / உணவுப் பொருள்' },
-  { code: 'GENERAL', username: 'general', password: 'general123', label: 'பொது சேவை மையம்' },
-];
-
 function profileFromUser(user) {
   return {
     பெயர்: user.fullName || user.username,
@@ -33,9 +23,8 @@ function isAdminRole(role) {
 
 function Login() {
   const navigate = useNavigate();
-  const [audience, setAudience] = useState(null);
-  const [adminDept, setAdminDept] = useState(null);
-  const [mode, setMode] = useState('login');
+  const [userType, setUserType] = useState('citizen'); // 'citizen' or 'official'
+  const [mode, setMode] = useState('login'); // 'login' or 'register' (register only available for citizen)
   const [form, setForm] = useState({
     username: '',
     password: '',
@@ -49,37 +38,16 @@ function Login() {
 
   const update = (patch) => setForm((current) => ({ ...current, ...patch }));
 
-  const resetForm = () => {
-    setForm({
-      username: '',
-      password: '',
-      fullName: '',
-      mobileNumber: '',
-      village: '',
-      district: '',
-    });
-    setStatus('');
-  };
-
-  const selectDepartment = (dept) => {
-    setAdminDept(dept);
-    setForm((current) => ({
-      ...current,
-      username: dept.username,
-      password: '',
-    }));
-    setStatus('');
-  };
-
   const submit = async (event) => {
     event.preventDefault();
     setBusy(true);
     setStatus('');
     try {
-      const payload = mode === 'login'
-        ? { username: form.username, password: form.password }
-        : form;
-      const response = await தரவை_அனுப்பு(`/auth/${mode === 'login' ? 'login' : 'register'}`, payload);
+      const isRegister = userType === 'citizen' && mode === 'register';
+      const payload = isRegister
+        ? form
+        : { username: form.username, password: form.password };
+      const response = await தரவை_அனுப்பு(`/auth/${isRegister ? 'register' : 'login'}`, payload);
       saveSession(response);
       navigate(isAdminRole(response.user.role) ? '/நிர்வாக-முகப்பு' : '/');
     } catch (error) {
@@ -93,130 +61,132 @@ function Login() {
     }
   };
 
-  if (!audience) {
-    return (
-      <div className="login-page">
-        <section className="login-panel" aria-label="Choose audience">
-          <div className="login-brand">
-            <div className="login-emblem">கு</div>
-            <div>
-              <p>தமிழ் குறைதீர் தளம்</p>
-              <h2>கிராம குரல்</h2>
-            </div>
-          </div>
-          <p className="login-intro-text">நீங்கள் யார் என்பதைத் தேர்வு செய்யுங்கள்</p>
-          <div className="login-audience-grid">
-            <button
-              type="button"
-              className="login-audience-card login-audience-citizen"
-              onClick={() => {
-                setAudience('citizen');
-                resetForm();
-              }}
-            >
-              <strong>குடிமக்கள்</strong>
-              <span>குறை பதிவு, நிலை கண்காணிப்பு</span>
-            </button>
-            <button
-              type="button"
-              className="login-audience-card login-audience-admin"
-              onClick={() => {
-                setAudience('admin');
-                resetForm();
-              }}
-            >
-              <strong>நிர்வாகம் / துறை</strong>
-              <span>துறை வாரியான உள்நுழைவு</span>
-            </button>
-          </div>
-        </section>
-      </div>
-    );
-  }
-
-  if (audience === 'admin' && !adminDept) {
-    return (
-      <div className="login-page">
-        <section className="login-panel" aria-label="Choose department">
-          <div className="login-brand">
-            <div className="login-emblem">அ</div>
-            <div>
-              <p>நிர்வாக உள்நுழைவு</p>
-              <h2>துறையைத் தேர்வு செய்யுங்கள்</h2>
-            </div>
-          </div>
-          <div className="login-dept-grid">
-            {ADMIN_DEPARTMENTS.map((dept) => (
-              <button key={dept.code} type="button" className="login-dept-card" onClick={() => selectDepartment(dept)}>
-                <strong>{dept.label}</strong>
-                <span>பயனர்: {dept.username}</span>
-              </button>
-            ))}
-          </div>
-          <button type="button" className="login-back" onClick={() => setAudience(null)}>← பின்செல்</button>
-        </section>
-      </div>
-    );
-  }
-
   return (
     <div className="login-page">
       <section className="login-panel" aria-label="Login">
         <div className="login-brand">
-          <div className="login-emblem">{audience === 'admin' ? 'அ' : 'கு'}</div>
+          <div className="login-emblem">{userType === 'official' ? 'அ' : 'கி'}</div>
           <div>
-            <p>{audience === 'admin' ? adminDept?.label : 'குடிமக்கள் உள்நுழைவு'}</p>
-            <h2>கிராம குரல் - பாதுகாப்பான உள்நுழைவு</h2>
+            <p>தமிழ் குரல் வழிக் குறைதீர் சேவை தளம்</p>
+            <h2>{userType === 'official' ? 'அரசுத் துறை / நிர்வாக உள்நுழைவு' : 'பொதுமக்கள் உள்நுழைவு'}</h2>
           </div>
         </div>
 
-        {audience === 'citizen' && (
-          <div className="login-tabs" role="tablist" aria-label="Account mode">
-            <button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>உள்நுழைவு</button>
-            <button type="button" className={mode === 'register' ? 'active' : ''} onClick={() => setMode('register')}>புதிய பயனர்</button>
+        {/* 1. Main Category Tabs: Citizen vs Department Official */}
+        <div className="login-tabs" role="tablist" aria-label="User category">
+          <button
+            type="button"
+            className={userType === 'citizen' ? 'active' : ''}
+            onClick={() => {
+              setUserType('citizen');
+              setMode('login');
+              setStatus('');
+            }}
+          >
+            👤 பொதுமக்கள் (Citizens)
+          </button>
+          <button
+            type="button"
+            className={userType === 'official' ? 'active' : ''}
+            onClick={() => {
+              setUserType('official');
+              setMode('login');
+              setStatus('');
+            }}
+          >
+            🏛️ துறை அலுவலர்கள் (Departments)
+          </button>
+        </div>
+
+        {/* 2. Secondary Tabs: Login vs Register (ONLY for Citizens) */}
+        {userType === 'citizen' && (
+          <div className="login-tabs" role="tablist" aria-label="Account mode" style={{ marginTop: '10px' }}>
+            <button
+              type="button"
+              className={mode === 'login' ? 'active' : ''}
+              onClick={() => { setMode('login'); setStatus(''); }}
+            >
+              உள்நுழைவு (Login)
+            </button>
+            <button
+              type="button"
+              className={mode === 'register' ? 'active' : ''}
+              onClick={() => { setMode('register'); setStatus(''); }}
+            >
+              புதிய கணக்கு (Sign Up)
+            </button>
           </div>
         )}
 
-        {audience === 'admin' && adminDept && (
-          <p className="login-hint">துறை கணக்கு: <strong>{adminDept.username}</strong> · கடவுச்சொல் உங்கள் துறை கடவுச்சொல்</p>
+        {userType === 'official' && (
+          <p className="login-hint" style={{ marginTop: '10px', textAlign: 'center', fontSize: '0.85rem', color: '#64748B' }}>
+            அரசுத்துறை அலுவலர்கள் மற்றும் நிர்வாகிகளுக்கான பிரத்யேக உள்நுழைவு பக்கம்.
+          </p>
         )}
 
-        <form className="login-form" onSubmit={submit}>
+        <form className="login-form" onSubmit={submit} style={{ marginTop: '16px' }}>
           <label>
-            <span>பயனர் பெயர்</span>
+            <span>பயனர் பெயர் (Username)</span>
             <input
+              type="text"
               value={form.username}
               onChange={(event) => update({ username: event.target.value })}
-              readOnly={audience === 'admin'}
+              placeholder={userType === 'official' ? 'எ.கா: water_kallakurichi, roads_chennai...' : 'உங்கள் பயனர் பெயரை உள்ளிடவும்'}
               required
             />
           </label>
+
           <label>
-            <span>கடவுச்சொல்</span>
-            {audience === 'citizen' && mode === 'register' ? (
-              <input type="password" value={form.password} onChange={(event) => update({ password: event.target.value })} pattern="(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':&quot;\\\\|,.<>\\/?]).{8,}" title="கடவுச்சொல் குறைந்தது 8 எழுத்துக்கள் மற்றும் ஒரு சிறப்பு குறியீட்டை கொண்டிருக்க வேண்டும்." required />
-            ) : (
-              <input type="password" value={form.password} onChange={(event) => update({ password: event.target.value })} required />
-            )}
+            <span>கடவுச்சொல் (Password)</span>
+            <input
+              type="password"
+              value={form.password}
+              onChange={(event) => update({ password: event.target.value })}
+              placeholder="உங்கள் கடவுச்சொல்லை உள்ளிடவும்"
+              required
+            />
           </label>
 
-          {audience === 'citizen' && mode === 'register' && (
+          {userType === 'citizen' && mode === 'register' && (
             <>
               <label>
-                <span>முழு பெயர்</span>
-                <input value={form.fullName} onChange={(event) => update({ fullName: event.target.value })} required />
+                <span>முழு பெயர் (Full Name)</span>
+                <input
+                  type="text"
+                  value={form.fullName}
+                  onChange={(event) => update({ fullName: event.target.value })}
+                  placeholder="உங்கள் முழு பெயர்"
+                  required
+                />
               </label>
               <label>
-                <span>கைபேசி எண்</span>
-                <input value={form.mobileNumber} onChange={(event) => update({ mobileNumber: event.target.value })} pattern="\d{10}" required />
+                <span>கைபேசி எண் (Mobile Number)</span>
+                <input
+                  type="tel"
+                  value={form.mobileNumber}
+                  onChange={(event) => update({ mobileNumber: event.target.value })}
+                  placeholder="10 இலக்க கைபேசி எண்"
+                  pattern="\d{10}"
+                  required
+                />
               </label>
               <label>
-                <span>ஊர்</span>
-                <input value={form.village} onChange={(event) => update({ village: event.target.value })} />
+                <span>ஊர் (Village)</span>
+                <input
+                  type="text"
+                  value={form.village}
+                  onChange={(event) => update({ village: event.target.value })}
+                  placeholder="ஊர் பெயர்"
+                />
               </label>
               <label>
-                <span>மாவட்டம்</span>
-                <input value={form.district} onChange={(event) => update({ district: event.target.value })} />
+                <span>மாவட்டம் (District)</span>
+                <input
+                  type="text"
+                  value={form.district}
+                  onChange={(event) => update({ district: event.target.value })}
+                  placeholder="மாவட்டம்"
+                />
               </label>
             </>
           )}
@@ -224,8 +194,13 @@ function Login() {
           {status && (
             <div className="login-error">
               <p>{status}</p>
-              {mode === 'register' && status.includes('ஏற்கனவே பதிவு செய்யப்பட்டுள்ளது') && (
-                <button type="button" className="attachment-button attachment-button-primary" style={{ marginTop: '10px' }} onClick={() => { setMode('login'); setStatus(''); }}>
+              {userType === 'citizen' && mode === 'register' && status.includes('ஏற்கனவே பதிவு செய்யப்பட்டுள்ளது') && (
+                <button
+                  type="button"
+                  className="attachment-button attachment-button-primary"
+                  style={{ marginTop: '10px' }}
+                  onClick={() => { setMode('login'); setStatus(''); }}
+                >
                   உள்நுழையவும் (Login)
                 </button>
               )}
@@ -233,26 +208,9 @@ function Login() {
           )}
 
           <button type="submit" className="login-submit" disabled={busy}>
-            {busy ? 'சரிபார்க்கிறது...' : 'உள்நுழை'}
+            {busy ? 'சரிபார்க்கிறது...' : (userType === 'citizen' && mode === 'register') ? 'பதிவு செய் (Sign Up)' : 'உள்நுழை (Login)'}
           </button>
         </form>
-
-        <button
-          type="button"
-          className="login-back"
-          onClick={() => {
-            if (audience === 'admin' && adminDept) {
-              setAdminDept(null);
-              resetForm();
-            } else {
-              setAudience(null);
-              setAdminDept(null);
-              resetForm();
-            }
-          }}
-        >
-          ← பின்செல்
-        </button>
       </section>
     </div>
   );

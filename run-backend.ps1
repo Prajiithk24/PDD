@@ -5,7 +5,8 @@ param(
   [string]$SarvamApiKey = $env:SARVAM_API_KEY,
   [string]$SarvamModel = $env:SARVAM_MODEL,
   [string]$SarvamEnabled = $env:SARVAM_ENABLED,
-  [int]$Port = 8080
+  [int]$Port = 8085
+
 )
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -23,11 +24,14 @@ if (Test-Path $localEnvFile) {
       $parts = $line.Split('=', 2)
       $name = $parts[0].Trim()
       $value = $parts[1].Trim()
-      if ($name -and -not [Environment]::GetEnvironmentVariable($name, 'Process')) {
+      if ($name) {
         [Environment]::SetEnvironmentVariable($name, $value, 'Process')
       }
     }
   }
+  $DbUrl = $env:GRAMAVOICE_DB_URL
+  $DbUsername = $env:GRAMAVOICE_DB_USERNAME
+  $DbPassword = $env:GRAMAVOICE_DB_PASSWORD
   if ([string]::IsNullOrWhiteSpace($SarvamApiKey)) {
     $SarvamApiKey = $env:SARVAM_API_KEY
   }
@@ -39,14 +43,15 @@ if (Test-Path $localEnvFile) {
   }
 }
 
+
 if ([string]::IsNullOrWhiteSpace($DbUrl)) {
-  $DbUrl = 'jdbc:h2:file:./data/gramavoice;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL'
+  $DbUrl = 'jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require'
 }
 if ([string]::IsNullOrWhiteSpace($DbUsername)) {
-  $DbUsername = 'sa'
+  $DbUsername = 'postgres.nffwpckgcrwaljmpxcef'
 }
 if ([string]::IsNullOrWhiteSpace($DbPassword)) {
-  $DbPassword = ''
+  $DbPassword = 'Prajubhai143'
 }
 if ([string]::IsNullOrWhiteSpace($SarvamModel)) {
   $SarvamModel = 'sarvam-30b'
@@ -60,7 +65,8 @@ if ($null -eq $SarvamApiKey) {
 
 if (Test-Path $pidFile) {
   $existingPid = Get-Content -Raw $pidFile
-  if ($existingPid -and (Get-Process -Id $existingPid -ErrorAction SilentlyContinue)) {
+  $activeListener = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
+  if ($existingPid -and (Get-Process -Id $existingPid -ErrorAction SilentlyContinue) -and $activeListener) {
     Write-Host "பின்னணி சேவை ஏற்கனவே இயங்குகிறது: http://localhost:$Port/api/dashboard/home"
     exit 0
   }
@@ -115,45 +121,42 @@ if (-not $javaPath) {
   throw 'Java executable கிடைக்கவில்லை.'
 }
 
-$safeJavaPath = $javaPath.Replace("'", "''")
-$safeDbUrl = $DbUrl.Replace("'", "''")
-$safeDbUsername = $DbUsername.Replace("'", "''")
-$safeDbPassword = $DbPassword.Replace("'", "''")
-$safeSarvamApiKey = $SarvamApiKey.Replace("'", "''")
-$safeSarvamModel = $SarvamModel.Replace("'", "''")
-$safeSarvamEnabled = $SarvamEnabled.Replace("'", "''")
-$command = @"
-`$env:GRAMAVOICE_DB_URL = '$safeDbUrl'
-`$env:GRAMAVOICE_DB_USERNAME = '$safeDbUsername'
-`$env:GRAMAVOICE_DB_PASSWORD = '$safeDbPassword'
-`$env:SARVAM_API_KEY = '$safeSarvamApiKey'
-`$env:SARVAM_MODEL = '$safeSarvamModel'
-`$env:SARVAM_ENABLED = '$safeSarvamEnabled'
-& '$safeJavaPath' -jar '.\\target\\backend-0.0.1-SNAPSHOT.jar'
-"@
-$powerShellPath = Join-Path $PSHOME 'powershell.exe'
+$DbDriver = 'org.postgresql.Driver'
+$JpaDialect = 'org.hibernate.dialect.PostgreSQLDialect'
 
-$process = Start-Process -FilePath $powerShellPath `
-  -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $command `
+[System.Environment]::SetEnvironmentVariable('GRAMAVOICE_DB_URL', $DbUrl, 'Process')
+[System.Environment]::SetEnvironmentVariable('GRAMAVOICE_DB_USERNAME', $DbUsername, 'Process')
+[System.Environment]::SetEnvironmentVariable('GRAMAVOICE_DB_PASSWORD', $DbPassword, 'Process')
+[System.Environment]::SetEnvironmentVariable('GRAMAVOICE_DB_DRIVER', $DbDriver, 'Process')
+[System.Environment]::SetEnvironmentVariable('SERVER_PORT', $Port.ToString(), 'Process')
+
+$env:GRAMAVOICE_DB_URL = $DbUrl
+$env:GRAMAVOICE_DB_USERNAME = $DbUsername
+$env:GRAMAVOICE_DB_PASSWORD = $DbPassword
+$env:GRAMAVOICE_DB_DRIVER = $DbDriver
+$env:GRAMAVOICE_JPA_DIALECT = $JpaDialect
+$env:SARVAM_API_KEY = $SarvamApiKey
+$env:SARVAM_MODEL = $SarvamModel
+$env:SARVAM_ENABLED = $SarvamEnabled
+
+
+$process = Start-Process -FilePath $javaPath `
+  -ArgumentList '-jar', '.\target\backend-0.0.1-SNAPSHOT.jar' `
   -WorkingDirectory $backendDir `
-  -WindowStyle Hidden `
   -RedirectStandardOutput $logFile `
   -RedirectStandardError $errorFile `
   -PassThru
 
 $trackedPid = $process.Id
-for ($attempt = 0; $attempt -lt 20; $attempt++) {
+for ($attempt = 0; $attempt -lt 45; $attempt++) {
   Start-Sleep -Seconds 1
   $activeListener = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
   if ($activeListener) {
     $trackedPid = $activeListener.OwningProcess
     break
   }
-  $process.Refresh()
-  if ($process.HasExited) {
-    break
-  }
 }
 
 Set-Content -Path $pidFile -Value $trackedPid
 Write-Host "பின்னணி சேவை தொடங்கப்பட்டது: http://localhost:$Port/api/dashboard/home"
+

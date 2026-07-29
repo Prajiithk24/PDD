@@ -37,6 +37,15 @@ public class DataInitializer {
             UserService userService
     ) {
         return args -> {
+            System.out.println("[DataInitializer] Executing seedData CommandLineRunner...");
+            try {
+                userService.initializeUsers();
+                System.out.println("[DataInitializer] userService.initializeUsers() finished successfully.");
+            } catch (Exception e) {
+                System.err.println("[DataInitializer] Failed userService.initializeUsers(): " + e.getMessage());
+                e.printStackTrace();
+            }
+            try {
             if (departmentRepository.count() == 0) {
                 departmentRepository.saveAll(List.of(
                         department("WATER", "குடிநீர் துறை", "மதுரை", "18001231001", 24, "குடிநீர், குழாய், தொட்டி, குடிநீர் விநியோகம் தொடர்பான குறைகள்"),
@@ -122,7 +131,15 @@ public class DataInitializer {
                 ));
             }
 
-            userService.initializeUsers();
+            } catch (Exception e) {
+                System.err.println("[DataInitializer] Initial seed check error (non-fatal): " + e.getMessage());
+            }
+
+            try {
+                userService.initializeUsers();
+            } catch (Exception e) {
+                System.err.println("[DataInitializer] User initialization error (non-fatal): " + e.getMessage());
+            }
         };
     }
 
@@ -152,11 +169,11 @@ public class DataInitializer {
         UserAccount account = new UserAccount();
         account.setFullName(fullName);
         account.setMobileNumber(mobile);
-        account.setVillage(village);
         account.setDistrict(district);
         account.setRole(role);
         return account;
     }
+
 
     private Announcement announcement(String titleTa, String contentTa, String areaNameTa) {
         Announcement announcement = new Announcement();

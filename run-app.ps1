@@ -15,4 +15,4 @@ Start-Sleep -Seconds 8
 
 Write-Host 'இரண்டு பகுதிகளும் தொடங்கும் வரை சில விநாடிகள் காத்திருக்கவும்.'
 Write-Host 'முன்பக்கம்: http://localhost:5173'
-Write-Host 'பின்னணி: http://localhost:8080/api/dashboard/home'
+Write-Host 'பின்னணி: http://localhost:8085/api/dashboard/home'

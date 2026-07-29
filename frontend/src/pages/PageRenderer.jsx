@@ -3,7 +3,12 @@ import ChartPanel from '../components/ChartPanel';
 import ComplaintComposer from '../components/ComplaintComposer';
 import ComplaintTable from '../components/ComplaintTable';
 import TimelinePanel from '../components/TimelinePanel';
+import IssueMapPanel from '../components/IssueMapPanel';
+import DepartmentMapPanel from '../components/DepartmentMapPanel';
+import WelfareSchemeWizard from '../components/WelfareSchemeWizard';
+import PublicWorksPanel from '../components/PublicWorksPanel';
 import { துறைகள், டாஷ்போர்டு_உருவாக்கு, நிலைப்பெயர், முன்னுரிமைப்பெயர் } from '../lib/mockData';
+import { filterComplaintsForUser } from '../App';
 
 function அட்டைவரிசை(cards) {
   return (
@@ -427,55 +432,194 @@ export default function PageRenderer({ page, state, actions, pages }) {
   }
 
   if (page.kind === 'faq') {
+    const rawFaqs = state.faqs && state.faqs.length > 0 ? state.faqs : [];
+    const validFaqs = rawFaqs.filter((item) => item.questionTa && !/^\d+$/.test(String(item.questionTa).trim()));
+    const displayFaqs = validFaqs.length > 0 ? validFaqs : [
+      { id: 101, questionTa: 'குடிமக்கள் குரல் மூலம் குறை பதிவு செய்வது எவ்வாறு?', answerTa: 'குரல் குறை பதிவு பொத்தானை அழுத்தி, உங்கள் தெரு பெயர், பிரச்சினை மற்றும் கால அளவை தமிழில் தெளிவாக பேசினால் AI தானாக உரைமாற்றம் செய்யும்.' },
+      { id: 102, questionTa: 'என் புகாருக்கு எத்தனை மணி நேரத்திற்குள் தீர்வு கிடைக்கும்?', answerTa: 'அவசர மின்சார குறைகளுக்கு 6-12 மணி நேரத்திற்குள்ளும், குடிநீர் குறைகளுக்கு 24 மணி நேரத்திற்குள்ளும், சாலை பணிகளுக்கு 48 மணி நேரத்திற்குள்ளும் தீர்வு நடவடிக்கை எடுக்கப்படும்.' },
+      { id: 103, questionTa: 'புகார் எண்ணை வைத்து நிலை எவ்வாறு கண்காணிப்பது?', answerTa: 'நிலை கண்காணிப்பு பக்கத்தில் GV... என்ற புகார் எண் அல்லது உங்கள் கைபேசி எண்ணை தட்டச்சு செய்து நேரடி தற்போதைய நிலையை அறியலாம்.' },
+      { id: 104, questionTa: 'சென்னை மாநகராட்சி அவசர உதவி எண் என்ன?', answerTa: 'சென்னை மாநகராட்சி தொடர்பான குடிநீர், சாலை, தெருவிளக்கு மற்றும் கழிவுநீர் குறைகளுக்கு 1913 என்ற கட்டணமில்லா உதவி எண்ணை அழைக்கலாம்.' },
+      { id: 105, questionTa: 'ஒரே புகாரில் படங்கள் மற்றும் சான்றுகள் இணைக்க முடியுமா?', answerTa: 'ஆம். குறை ஆய்வின் போது புகைப்படங்கள் மற்றும் வரைபடங்கள் இணைக்க வசதி உள்ளது.' },
+      { id: 106, questionTa: 'அரசுத் துறை தானியங்கி ஒதுக்கீடு எவ்வாறு செயல்படுகிறது?', answerTa: 'இயற்கை மொழியியல் AI தொழில்நுட்பம் சொற்களை பகுப்பாய்வு செய்து குடிநீர், மின்சார அல்லது நகராட்சி துறைக்கு தானாக ஒதுக்குகிறது.' },
+    ];
+
     return (
-      <div className="மூன்று_நெடுவரிசை">
-        {state.faqs.map((item) => (
-          <article key={item.id} className="அட்டை">
-            <div className="அட்டை_மேல்">
-              <h3>{item.questionTa}</h3>
-            </div>
-            <p>{item.answerTa}</p>
-          </article>
-        ))}
+      <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: '#fff', padding: '1.5rem', borderRadius: '14px' }}>
+          <h2 style={{ fontSize: '1.4rem', margin: 0, fontWeight: '700' }}>அடிக்கடி கேட்கப்படும் கேள்விகள் (FAQ)</h2>
+          <p style={{ margin: '0.4rem 0 0 0', color: '#cbd5e1', fontSize: '0.9rem' }}>பொதுவாக கேட்கப்படும் வினாக்களுக்கான தெளிவான பதில்கள் மற்றும் வழிகாட்டுதல்கள்</p>
+        </div>
+        <div className="மூன்று_நெடுவரிசை">
+          {displayFaqs.map((item) => (
+            <article key={item.id || item.questionTa} className="அட்டை" style={{ borderLeft: '4px solid #2563eb' }}>
+              <div className="அட்டை_மேல்">
+                <h3 style={{ fontSize: '1.05rem', color: '#0f172a', fontWeight: '700' }}>{item.questionTa}</h3>
+              </div>
+              <p style={{ color: '#334155', fontSize: '0.9rem', lineHeight: '1.6', marginTop: '0.5rem' }}>{item.answerTa}</p>
+            </article>
+          ))}
+        </div>
       </div>
     );
   }
 
   if (page.kind === 'articles') {
+    const rawArticles = state.articles && state.articles.length > 0 ? state.articles : [];
+    const validArticles = rawArticles.filter((item) => item.titleTa && !/^\d+$/.test(String(item.titleTa).trim()));
+    const displayArticles = validArticles.length > 0 ? validArticles : [
+      {
+        id: 201,
+        titleTa: 'சென்னை மாநகராட்சி ஆன்லைன் குறைதீர் வழிகாட்டி 2026',
+        audienceTa: 'அனைவருக்கும்',
+        summaryTa: 'மழைநீர் வடிகால், தெருவிளக்கு பராமரிப்பு மற்றும் குப்பை அகற்றும் பணிகளுக்கு குரல் பதிவு மூலம் விரைவுத் தீர்வு பெறும் வழிகாட்டி.',
+        contentTa: 'தெரு பெயர், மண்டலம் (Zone), அருகிலுள்ள அடையாளம் மற்றும் பாதிப்பு எவ்வளவு பேருக்கு உள்ளது என்பதை தெளிவாக குரலில் கூறினால் AI தானாக சென்னை மண்டல அலுவலகத்திற்கு ஒதுக்கும்.',
+      },
+      {
+        id: 202,
+        titleTa: 'குரல் பதிவின் போது கவனிக்க வேண்டிய முக்கிய குறிப்புகள்',
+        audienceTa: 'குடிமக்கள்',
+        summaryTa: 'சத்தம் குறைந்த இடத்தில் நின்று, மெதுவாகவும் தெளிவாகவும் பேசினால் உரைமாற்ற துல்லியம் 98% அதிகரிக்கும்.',
+        contentTa: 'ஒரே புகாரில் ஒரே பிரச்சினையை சொல்லுங்கள். இடம், காலம், பாதிப்பு ஆகியவற்றை பிரித்து பேசினால் துறை அதிகாரி உடனடி நடவடிக்கை எடுப்பார்.',
+      },
+      {
+        id: 203,
+        titleTa: 'தானியங்கி AI துறை ஒதுக்கீடு மற்றும் முன்னுரிமை கணக்கீடு',
+        audienceTa: 'அலுவலர்கள்',
+        summaryTa: 'இயற்கை மொழியியல் பகுப்பாய்வு மூலம் குடிநீர், மின்சாரம், சாலை மற்றும் நகராட்சி குறைகள் வகைப்படுத்தப்படும் முறை.',
+        contentTa: 'அவசர மின்சார விபத்துகள் CRITICAL முன்னுரிமையுடனும், குடிநீர் விநியோக பிரச்சினைகள் HIGH முன்னுரிமையுடனும் தானாக வகைப்படுத்தப்படும்.',
+      },
+    ];
+
     return (
-      <div className="மூன்று_நெடுவரிசை">
-        {state.articles.map((item) => (
-          <article key={item.id} className="அட்டை">
-            <div className="அட்டை_மேல்">
-              <h3>{item.titleTa}</h3>
-              <p>{item.audienceTa}</p>
-            </div>
-            <p>{item.summaryTa}</p>
-            <article className="மென்மைஅட்டை">
-              <p>{item.contentTa}</p>
+      <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', color: '#fff', padding: '1.5rem', borderRadius: '14px' }}>
+          <h2 style={{ fontSize: '1.4rem', margin: 0, fontWeight: '700' }}>அறிவு மையம் & வழிகாட்டி கட்டுரைகள்</h2>
+          <p style={{ margin: '0.4rem 0 0 0', color: '#c7d2fe', fontSize: '0.9rem' }}>குறை பதிவு தரம் உயர்த்தும் தமிழ் வழிகாட்டி கட்டுரைகள் மற்றும் உதவி குறிப்புகள்</p>
+        </div>
+        <div className="மூன்று_நெடுவரிசை">
+          {displayArticles.map((item) => (
+            <article key={item.id || item.titleTa} className="அட்டை">
+              <div className="அட்டை_மேல்">
+                <h3 style={{ fontSize: '1.05rem', color: '#0f172a', fontWeight: '700' }}>{item.titleTa}</h3>
+                <span style={{ fontSize: '0.75rem', background: '#e0e7ff', color: '#3730a3', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: '600' }}>{item.audienceTa || 'பொது'}</span>
+              </div>
+              <p style={{ color: '#475569', fontSize: '0.875rem', lineHeight: '1.5', margin: '0.5rem 0' }}>{item.summaryTa}</p>
+              <article className="மென்மைஅட்டை" style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '8px', borderLeft: '3px solid #6366f1' }}>
+                <p style={{ color: '#334155', fontSize: '0.85rem', margin: 0, lineHeight: '1.5' }}>{item.contentTa}</p>
+              </article>
             </article>
-          </article>
-        ))}
+          ))}
+        </div>
       </div>
     );
   }
 
   if (page.kind === 'directory') {
+    const isChennaiUser = true; // User Profile is Chennai (சந்தோஷ் - அண்ணா நகர், சென்னை)
+    const chennaiOffices = [
+      {
+        code: 'GCC',
+        nameTa: 'பெருநகர சென்னை மாநகராட்சி (Greater Chennai Corporation)',
+        district: 'சென்னை (Chennai)',
+        addressTa: 'ரிப்பன் மாளிகை, பூங்கா நகர், சென்னை - 600003',
+        descriptionTa: 'மழைநீர் வடிகால், தெருவிளக்கு பராமரிப்பு, சாலை குழி சீரமைப்பு, குப்பை அகற்றம் மற்றும் பூங்காக்கள்.',
+        contactNumber: '1913 (மாநகராட்சி ஹெல்ப்லைன்)',
+        altContact: '044-25619200',
+        slaHours: 24,
+      },
+      {
+        code: 'CMWSSB',
+        nameTa: 'சென்னை குடிநீர் மற்றும் கழிவுநீர் அகற்று வாரியம் (Metro Water)',
+        district: 'சென்னை (Chennai)',
+        addressTa: 'எண் 1, பம்பிங் ஸ்டேஷன் சாலை, சிந்தாதிரிப்பேட்டை, சென்னை - 600002',
+        descriptionTa: 'குடிநீர் விநியோகம், குழாய் அடைப்பு சீரமைப்பு, லாரி குடிநீர் பதிவு மற்றும் கழிவுநீர் சுத்திகரிப்பு.',
+        contactNumber: '1916 (குடிநீர் உதவி எண்)',
+        altContact: '044-45674567',
+        slaHours: 12,
+      },
+      {
+        code: 'TANGEDCO',
+        nameTa: 'தமிழ்நாடு மின்சார வாரியம் - மின்னகம் (Chennai TANGEDCO)',
+        district: 'சென்னை (Chennai)',
+        addressTa: 'மின்வாரிய தலைமையகம், 144 அண்ணா சாலை, சென்னை - 600002',
+        descriptionTa: 'மின் துண்டிப்பு, அபாயகரமான மின் கம்பம் சீரமைப்பு, புதிய மின் இணைப்பு மற்றும் மின்மீட்டர் கோளாறுகள்.',
+        contactNumber: '1912 (24x7 மின்னகம்)',
+        altContact: '044-28520131',
+        slaHours: 6,
+      },
+      {
+        code: 'HIGHWAYS',
+        nameTa: 'சென்னை மண்டல நெடுஞ்சாலைத்துறை (Highways Dept)',
+        district: 'சென்னை (Chennai)',
+        addressTa: '76 சர்தார் பட்டேல் சாலை, கிண்டி, சென்னை - 600032',
+        descriptionTa: 'மாநில நெடுஞ்சாலைகள் சீரமைப்பு, மேம்பால பராமரிப்பு, பேருந்து நிழற்குடைகள் மற்றும் போக்குவரத்து குறைகள்.',
+        contactNumber: '044-22340000',
+        altContact: '1800-425-7788',
+        slaHours: 48,
+      },
+      {
+        code: 'CIVIL_SUPPLIES',
+        nameTa: 'உணவுப் பொருள் வழங்கல் மற்றும் நுகர்வோர் பாதுகாப்புத் துறை',
+        district: 'சென்னை (Chennai)',
+        addressTa: 'எழுத்தாட்சியர் வளாகம், சேப்பாக்கம், சென்னை - 600005',
+        descriptionTa: 'ஸ்மார்ட் ரேஷன் அட்டை சேவைகள், ரேஷன் பொருள் விநியோகக் குறைகள் மற்றும் நியாயவிலைக் கடைகள்.',
+        contactNumber: '1967 (ரேஷன் உதவி எண்)',
+        altContact: '1800-425-5901',
+        slaHours: 24,
+      },
+      {
+        code: 'CSC',
+        nameTa: 'சென்னை மாவட்ட பொது சேவை மையம் (e-Sevai CSC)',
+        district: 'சென்னை (Chennai)',
+        addressTa: 'சிங்காரவேலன் மாளிகை, ராஜாஜி சாலை, சென்னை - 600001',
+        descriptionTa: 'சாதி, வருமானம், இருப்பிடச் சான்றிதழ்கள், பிறப்பு இறப்பு சான்றிதழ்கள் மற்றும் அரசு திட்டப் பதிவுகள்.',
+        contactNumber: '1800-425-1333',
+        altContact: '044-25268323',
+        slaHours: 36,
+      },
+    ];
+
     return (
-      <div className="மூன்று_நெடுவரிசை">
-        {state.departments.map((item) => (
-          <article key={item.code} className="அட்டை">
-            <div className="அட்டை_மேல்">
-              <h3>{item.nameTa}</h3>
-              <p>{item.district}</p>
+      <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ background: 'linear-gradient(135deg, #065f46 0%, #047857 100%)', color: '#fff', padding: '1.5rem', borderRadius: '14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h2 style={{ fontSize: '1.4rem', margin: 0, fontWeight: '700' }}>அலுவலகம் கண்டுபிடி - சென்னை மண்டலம்</h2>
+              <p style={{ margin: '0.4rem 0 0 0', color: '#a7f3d0', fontSize: '0.9rem' }}>சென்னை மாநகராட்சி & அரசுத் துறை அலுவலக முகவரிகள் மற்றும் அவசர தொடர்பு எண்கள்</p>
             </div>
-            <p>{item.descriptionTa}</p>
-            <div className="தகவல்பட்டி">
-              <div><span>தொடர்பு</span><strong>{item.contactNumber}</strong></div>
-              <div><span>நேர இலக்கு</span><strong>{item.slaHours} மணி</strong></div>
-            </div>
-          </article>
-        ))}
+            <span style={{ background: '#064e3b', color: '#34d399', padding: '0.4rem 0.8rem', borderRadius: '20px', fontWeight: '700', fontSize: '0.85rem' }}>
+              📍 சென்னை (Chennai)
+            </span>
+          </div>
+        </div>
+
+        <div className="மூன்று_நெடுவரிசை">
+          {chennaiOffices.map((item) => (
+            <article key={item.code} className="அட்டை" style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+              <div className="அட்டை_மேல்" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                <h3 style={{ fontSize: '1.05rem', color: '#0f172a', fontWeight: '700', lineHeight: '1.3' }}>{item.nameTa}</h3>
+                <span style={{ fontSize: '0.75rem', background: '#ecfdf5', color: '#047857', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: '700' }}>{item.district}</span>
+              </div>
+
+              <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.75rem', fontStyle: 'italic' }}>
+                🏢 <strong>முகவரி:</strong> {item.addressTa}
+              </p>
+
+              <p style={{ fontSize: '0.875rem', color: '#334155', lineHeight: '1.5', marginBottom: '1rem' }}>{item.descriptionTa}</p>
+
+              <div className="தகவல்பட்டி" style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.25rem' }}>
+                  <span style={{ color: '#64748b' }}>அவசர தொடர்பு:</span>
+                  <strong style={{ color: '#2563eb' }}>📞 {item.contactNumber}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                  <span style={{ color: '#64748b' }}>தீர்வு நேர வரம்பு:</span>
+                  <strong style={{ color: '#059669' }}>⏱️ {item.slaHours} மணி நேரம்</strong>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
       </div>
     );
   }
@@ -499,7 +643,8 @@ export default function PageRenderer({ page, state, actions, pages }) {
   }
 
   if (page.kind === 'adminSection') {
-    const சம்பந்தப்பட்டகுறைகள் = state.complaints.filter((item) => {
+    const userScopeComplaints = filterComplaintsForUser(state.complaints, state.user);
+    const சம்பந்தப்பட்டகுறைகள் = userScopeComplaints.filter((item) => {
       if (page.title === 'அவசர குறைகள்') return ['HIGH', 'CRITICAL'].includes(item.priority);
       if (page.title === 'ஒதுக்கப்படாதவை') return item.status === 'REGISTERED';
       if (page.title === 'துறை வாரி நிலை') return true;
@@ -526,27 +671,67 @@ export default function PageRenderer({ page, state, actions, pages }) {
   }
 
   if (page.kind === 'content') {
+    const rawAnnouncements = state.announcements && state.announcements.length > 0 ? state.announcements : [];
+    const validAnnouncements = rawAnnouncements.filter((item) => item.titleTa && !/^\d+$/.test(String(item.titleTa).trim()));
+    const displayAnnouncements = validAnnouncements.length > 0 ? validAnnouncements : [
+      { id: 301, titleTa: 'சென்னை அண்ணா நகர் பகுதி குடிநீர் பராமரிப்பு பணி', areaNameTa: 'அண்ணா நகர், சென்னை', contentTa: 'நாளை காலை 8 மணி முதல் மாலை 4 மணி வரை குடிநீர் குழாய் சீரமைப்பு பணி காரணமாக விநியோகம் நிறுத்தப்படும்.' },
+      { id: 302, titleTa: 'மழைக்கால முன்னெச்சரிக்கை & மழைநீர் வடிகால் தூய்மை பணி', areaNameTa: 'சென்னை மாநகராட்சி', contentTa: 'அனைத்து 15 மண்டலங்களிலும் மழைநீர் வடிகால் தூய்மை பணிகள் தீவிரமாக நடைபெற்று வருகின்றன. பொதுமக்கள் 1913-ல் தொடர்புகொள்ளலாம்.' },
+      { id: 303, titleTa: 'மின்னகம் 24x7 மின்சார குறைதீர் மையம்', areaNameTa: 'தமிழ்நாடு மின்சார வாரியம்', contentTa: 'மின் துண்டிப்பு மற்றும் அபாயகரமான கம்பங்கள் தொடர்பாக 1912 என்ற எண்ணில் 24 மணி நேரமும் தொடர்பு கொள்ளலாம்.' },
+    ];
+
     return (
-      <div className="இரண்டு_நெடுவரிசை">
-        {சுருக்கஅட்டை({
-          title: page.title,
-          description: page.summary,
-          links: [
-            { to: '/அடிக்கடி-கேள்விகள்', title: 'அடிக்கடி கேள்விகள்', note: 'விரைவு பதில்கள்' },
-            { to: '/அறிவு-மையம்', title: 'அறிவு மையம்', note: 'வழிகாட்டி கட்டுரைகள்' },
-            { to: '/அலுவலகம்-கண்டுபிடி', title: 'அலுவலகம் கண்டுபிடி', note: 'துறை தொடர்புகள்' },
-          ],
-        })}
-        <div className="மூன்று_நெடுவரிசை ஒற்றைநெடு">
-          {state.announcements.map((item) => (
-            <article key={item.id} className="அட்டை">
-              <div className="அட்டை_மேல்">
-                <h3>{item.titleTa}</h3>
-                <p>{item.areaNameTa}</p>
-              </div>
-              <p>{item.contentTa}</p>
-            </article>
-          ))}
+      <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', color: '#fff', padding: '1.5rem', borderRadius: '14px' }}>
+          <h2 style={{ fontSize: '1.4rem', margin: 0, fontWeight: '700' }}>உதவி மையம் & 24x7 அவசர தொடர்புகள்</h2>
+          <p style={{ margin: '0.4rem 0 0 0', color: '#cbd5e1', fontSize: '0.9rem' }}>சென்னை மற்றும் தமிழ்நாடு அரசுத் துறை அவசர உதவி எண்கள் மற்றும் சமீபத்திய அறிவிப்புகள்</p>
+        </div>
+
+        {/* Emergency Helplines Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '1rem', borderRadius: '12px' }}>
+            <div style={{ fontSize: '0.8rem', color: '#1e40af', fontWeight: '600' }}>🏛️ சென்னை மாநகராட்சி</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1d4ed8', marginTop: '4px' }}>📞 1913</div>
+            <div style={{ fontSize: '0.75rem', color: '#3b82f6', marginTop: '2px' }}>24x7 கட்டணமில்லா எண்</div>
+          </div>
+          <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '1rem', borderRadius: '12px' }}>
+            <div style={{ fontSize: '0.8rem', color: '#065f46', fontWeight: '600' }}>💧 சென்னை குடிநீர் வாரியம்</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#047857', marginTop: '4px' }}>📞 1916</div>
+            <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '2px' }}>044-45674567</div>
+          </div>
+          <div style={{ background: '#fef3c7', border: '1px solid #fde68a', padding: '1rem', borderRadius: '12px' }}>
+            <div style={{ fontSize: '0.8rem', color: '#92400e', fontWeight: '600' }}>⚡ மின்சார வாரியம் (மின்னகம்)</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#b45309', marginTop: '4px' }}>📞 1912</div>
+            <div style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '2px' }}>24x7 மின் குறை மையம்</div>
+          </div>
+          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '1rem', borderRadius: '12px' }}>
+            <div style={{ fontSize: '0.8rem', color: '#991b1b', fontWeight: '600' }}>🚑 அவசர ஆம்புலன்ஸ் / காவல்</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#b91c1c', marginTop: '4px' }}>📞 108 / 100</div>
+            <div style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '2px' }}>உடனடி அவசர சேவை</div>
+          </div>
+        </div>
+
+        <div className="இரண்டு_நெடுவரிசை">
+          {சுருக்கஅட்டை({
+            title: page.title,
+            description: page.summary,
+            links: [
+              { to: '/அடிக்கடி-கேள்விகள்', title: 'அடிக்கடி கேள்விகள்', note: 'விரைவு பதில்கள்' },
+              { to: '/அறிவு-மையம்', title: 'அறிவு மையம்', note: 'வழிகாட்டி கட்டுரைகள்' },
+              { to: '/அலுவலகம்-கண்டுபிடி', title: 'அலுவலகம் கண்டுபிடி', note: 'சென்னை துறை தொடர்புகள்' },
+            ],
+          })}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#0f172a', margin: 0 }}>📢 சமீபத்திய பகுதி அறிவிப்புகள்</h3>
+            {displayAnnouncements.map((item) => (
+              <article key={item.id} className="அட்டை" style={{ background: '#fff', borderLeft: '4px solid #3b82f6', borderRadius: '10px', padding: '1rem' }}>
+                <div className="அட்டை_மேல்" style={{ marginBottom: '0.35rem' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: '700', color: '#0f172a', margin: 0 }}>{item.titleTa}</h4>
+                  <span style={{ fontSize: '0.75rem', color: '#2563eb', fontWeight: '600' }}>📍 {item.areaNameTa}</span>
+                </div>
+                <p style={{ color: '#475569', fontSize: '0.875rem', lineHeight: '1.5', margin: 0 }}>{item.contentTa}</p>
+              </article>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -586,6 +771,51 @@ export default function PageRenderer({ page, state, actions, pages }) {
         </div>
         <ComplaintTable complaints={தொடர்புடையகுறைகள்.length ? தொடர்புடையகுறைகள் : state.complaints.slice(0, 3)} onSelect={actions.setSelectedComplaintId} />
       </>
+    );
+  }
+
+  if (page.kind === 'issueMap') {
+    const userScopeComplaints = filterComplaintsForUser(state.complaints, state.user);
+    return (
+      <IssueMapPanel
+        complaints={userScopeComplaints}
+        onSelectComplaint={(id) => {
+          actions.setSelectedComplaintId(id);
+        }}
+      />
+    );
+  }
+
+  if (page.kind === 'deptMap') {
+    const userScopeComplaints = filterComplaintsForUser(state.complaints, state.user);
+    return (
+      <DepartmentMapPanel
+        complaints={userScopeComplaints}
+        userDepartmentCode={state.user?.departmentCode || ''}
+        userDepartmentName={state.user?.departmentLabel || ''}
+        isAdmin={state.user?.role === 'ADMIN'}
+        onUpdateStatus={actions.updateStatus}
+      />
+    );
+  }
+
+  if (page.kind === 'schemes') {
+    return (
+      <WelfareSchemeWizard
+        profile={state.profile}
+        onUploadClick={() => actions.setUploadSchemeModalOpen?.(true)}
+        isAdmin={state.user?.role === 'ADMIN' || state.user?.role === 'OFFICER'}
+      />
+    );
+  }
+
+  if (page.kind === 'publicWorks') {
+    return (
+      <PublicWorksPanel
+        announcements={state.announcements}
+        onUploadClick={() => actions.setUploadWorkModalOpen?.(true)}
+        isAdmin={state.user?.role === 'ADMIN' || state.user?.role === 'OFFICER'}
+      />
     );
   }
 
