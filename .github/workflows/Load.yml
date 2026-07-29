@@ -8,19 +8,95 @@ on:
   workflow_dispatch:
 
 jobs:
-  load-report-job:
-    name: Load.yml
+  reports-job:
+    name: Process All 6 Excel Test Reports
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Verify Load Test Report Excel File
+      # 1. Appium Test Report
+      - name: Verify Appium Test Report
+        run: |
+          if [ -f "tests/reports/Appium_Test_Report.xlsx" ]; then
+            echo "Successfully found tests/reports/Appium_Test_Report.xlsx"
+          else
+            echo "Error: tests/reports/Appium_Test_Report.xlsx missing!" && exit 1
+          fi
+
+      - name: Upload Appium Test Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Appium-Test-Report
+          path: tests/reports/Appium_Test_Report.xlsx
+
+      # 2. Selenium Test Report
+      - name: Verify Selenium Test Report
+        run: |
+          if [ -f "tests/reports/Selenium_Test_Report.xlsx" ]; then
+            echo "Successfully found tests/reports/Selenium_Test_Report.xlsx"
+          else
+            echo "Error: tests/reports/Selenium_Test_Report.xlsx missing!" && exit 1
+          fi
+
+      - name: Upload Selenium Test Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Selenium-Test-Report
+          path: tests/reports/Selenium_Test_Report.xlsx
+
+      # 3. Validation Test Report
+      - name: Verify Validation Test Report
+        run: |
+          if [ -f "tests/reports/Validation_Test_Report.xlsx" ]; then
+            echo "Successfully found tests/reports/Validation_Test_Report.xlsx"
+          else
+            echo "Error: tests/reports/Validation_Test_Report.xlsx missing!" && exit 1
+          fi
+
+      - name: Upload Validation Test Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Validation-Test-Report
+          path: tests/reports/Validation_Test_Report.xlsx
+
+      # 4. Unit Test Report
+      - name: Verify Unit Test Report
+        run: |
+          if [ -f "tests/reports/Unit_Test_Report.xlsx" ]; then
+            echo "Successfully found tests/reports/Unit_Test_Report.xlsx"
+          else
+            echo "Error: tests/reports/Unit_Test_Report.xlsx missing!" && exit 1
+          fi
+
+      - name: Upload Unit Test Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Unit-Test-Report
+          path: tests/reports/Unit_Test_Report.xlsx
+
+      # 5. Vulnerability Test Report
+      - name: Verify Vulnerability Test Report
+        run: |
+          if [ -f "tests/reports/Vulnerability_Test_Report.xlsx" ]; then
+            echo "Successfully found tests/reports/Vulnerability_Test_Report.xlsx"
+          else
+            echo "Error: tests/reports/Vulnerability_Test_Report.xlsx missing!" && exit 1
+          fi
+
+      - name: Upload Vulnerability Test Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vulnerability-Test-Report
+          path: tests/reports/Vulnerability_Test_Report.xlsx
+
+      # 6. Load Test Report
+      - name: Verify Load Test Report
         run: |
           if [ -f "tests/reports/Load_Test_Report.xlsx" ]; then
             echo "Successfully found tests/reports/Load_Test_Report.xlsx"
           else
-            echo "Error: tests/reports/Load_Test_Report.xlsx does not exist!" && exit 1
+            echo "Error: tests/reports/Load_Test_Report.xlsx missing!" && exit 1
           fi
 
       - name: Upload Load Test Report Artifact
