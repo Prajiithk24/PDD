@@ -1,4 +1,4 @@
-name: Load Test Report Workflow
+name: Load.yml
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   load-report-job:
-    name: Process Load Test Report
+    name: Load.yml
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository

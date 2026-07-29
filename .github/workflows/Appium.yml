@@ -1,4 +1,4 @@
-name: Appium Test Report Workflow
+name: Appium.yml
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   appium-report-job:
-    name: Process Appium Test Report
+    name: Appium.yml
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository

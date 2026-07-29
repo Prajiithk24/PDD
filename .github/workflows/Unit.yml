@@ -1,4 +1,4 @@
-name: Unit Test Report Workflow
+name: Unit.yml
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   unit-report-job:
-    name: Process Unit Test Report
+    name: Unit.yml
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository

@@ -1,4 +1,4 @@
-name: Selenium Test Report Workflow
+name: Selenium.yml
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   selenium-report-job:
-    name: Process Selenium Test Report
+    name: Selenium.yml
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
