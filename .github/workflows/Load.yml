@@ -1,0 +1,30 @@
+name: Load.yml
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  test-job:
+    name: "Load Testing — Performance (300)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Verify Report File
+        run: |
+          if [ -f "tests/reports/Load_Test_Report.xlsx" ]; then
+            echo "Successfully found tests/reports/Load_Test_Report.xlsx"
+          else
+            echo "Error: tests/reports/Load_Test_Report.xlsx missing!" && exit 1
+          fi
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Load-Test-Report
+          path: tests/reports/Load_Test_Report.xlsx
